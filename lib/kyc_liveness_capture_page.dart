@@ -100,6 +100,7 @@ class _KycLivenessCapturePageState extends State<KycLivenessCapturePage> {
   ];
 
   CameraController? _controller;
+  CameraDescription? _camera;
   FaceDetector? _faceDetector;
   bool _initializing = true;
   bool _processingFrame = false;
@@ -136,7 +137,9 @@ class _KycLivenessCapturePageState extends State<KycLivenessCapturePage> {
         frontCamera,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.yuv420,
+        imageFormatGroup: Platform.isIOS
+            ? ImageFormatGroup.bgra8888
+            : ImageFormatGroup.nv21,
       );
       await controller.initialize();
 
@@ -150,6 +153,7 @@ class _KycLivenessCapturePageState extends State<KycLivenessCapturePage> {
       );
 
       _controller = controller;
+      _camera = frontCamera;
       _faceDetector = faceDetector;
 
       if (!mounted) {
@@ -213,31 +217,36 @@ class _KycLivenessCapturePageState extends State<KycLivenessCapturePage> {
   }
 
   InputImage? _inputImageFromCameraImage(CameraImage image) {
-    if (_controller == null) {
+    final camera = _camera;
+    if (_controller == null || camera == null) {
       return null;
     }
 
-    final allBytes = WriteBuffer();
-    for (final plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
+    final format = InputImageFormatValue.fromRawValue(image.format.raw);
+    if (format == null ||
+        (Platform.isAndroid && format != InputImageFormat.nv21) ||
+        (Platform.isIOS && format != InputImageFormat.bgra8888)) {
+      return null;
     }
-    final bytes = allBytes.done().buffer.asUint8List();
+
+    if (image.planes.length != 1) {
+      return null;
+    }
+    final plane = image.planes.first;
 
     final size = Size(image.width.toDouble(), image.height.toDouble());
     final rotation = Platform.isIOS
-        ? InputImageRotation.rotation0deg
+        ? InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
+              InputImageRotation.rotation0deg
         : InputImageRotation.rotation270deg;
-    final format = Platform.isIOS
-        ? InputImageFormat.bgra8888
-        : InputImageFormat.nv21;
 
     return InputImage.fromBytes(
-      bytes: bytes,
+      bytes: plane.bytes,
       metadata: InputImageMetadata(
         size: size,
         rotation: rotation,
         format: format,
-        bytesPerRow: image.planes.first.bytesPerRow,
+        bytesPerRow: plane.bytesPerRow,
       ),
     );
   }
