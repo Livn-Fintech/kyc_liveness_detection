@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'home_page.dart';
+import 'splash_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +20,7 @@ class KycVerificationApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'KYC Verification',
+      title: 'Livn',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -29,7 +29,7 @@ class KycVerificationApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF3F7FB),
       ),
-      home: const HomePage(),
+      home: const SplashPage(),
     );
   }
 }
